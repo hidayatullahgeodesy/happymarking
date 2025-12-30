@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Happy Marking</title>
+    <title>Happy Marking - GeoEditor</title>
     
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -37,6 +37,7 @@
         .platinum-btn { background-color: #E6E6E6; border-top: 1px solid #fff; border-left: 1px solid #fff; border-right: 1px solid #444; border-bottom: 1px solid #444; border-radius: 3px; padding: 4px 10px; font-size: 12px; color: #000; cursor: pointer; margin-right: 4px; min-width: 32px; text-align: center; display: inline-flex; align-items: center; justify-content: center; user-select: none; }
         .platinum-btn:hover { background-color: #f0f0f0; }
         .platinum-btn:active, .platinum-btn.active { border-top: 1px solid #444; border-left: 1px solid #444; border-right: 1px solid #fff; border-bottom: 1px solid #fff; background-color: #ccc; transform: translateY(1px); }
+        .platinum-select, .platinum-input { font-size: 11px; border: 1px solid #444; background: #fff; padding: 2px; }
 
         /* --- WYSIWYG EDITOR --- */
         .editor-container { border: 1px solid #888; border-top: 1px solid #444; background: #fff; border-radius: 2px; }
@@ -64,11 +65,14 @@
         .data-table th { background: #ddd; text-align: left; padding: 6px 8px; border-bottom: 1px solid #aaa; position: sticky; top: 0; z-index: 5; }
         .data-table td { padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer; }
         .data-table tr:hover { background: #f0f7ff; }
-        .data-table tr.selected { background: #6699CC; color: white; }
 
         #toggle-table-btn { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1500; }
         #layers-menu { display: none; position: absolute; background: #E6E6E6; border: 1px solid #444; padding: 6px; z-index: 4000; box-shadow: 3px 3px 5px rgba(0,0,0,0.3); font-size: 11px; top: 100%; left: 0; min-width: 120px; }
-        .modal-window { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5000; width: 340px; font-family: "Charcoal", sans-serif; background: #E6E6E6; border-radius: 4px 4px 0 0; border: 1px solid #444; }
+        .modal-window { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5000; width: 340px; font-family: "Charcoal", sans-serif; background: #E6E6E6; border-radius: 4px 4px 0 0; border: 1px solid #444; padding-bottom: 10px;}
+        .platinum-content { padding: 10px; }
+        .form-group { margin-bottom: 8px; }
+        .form-label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 2px; }
+        
         #toast { visibility: hidden; min-width: 180px; background-color: #FFFFCC; border: 1px solid #999; color: #000; text-align: center; padding: 6px 12px; position: fixed; z-index: 6000; left: 50%; bottom: 40px; transform: translateX(-50%); font-size: 12px; }
         #toast.show { visibility: visible; }
 
@@ -88,25 +92,25 @@
         <div class="toolbar-group"><button class="platinum-btn" onclick="showAbout()"></button></div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
-            <button class="platinum-btn" onclick="createNewMap()" title="Baru">📄</button>
-            <button class="platinum-btn" onclick="triggerGpxImport()" title="Impor GPX">📂</button>
-            <button class="platinum-btn" onclick="downloadGeoJSON()" title="Simpan GeoJSON">💾</button>
-            <button class="platinum-btn" onclick="downloadKML()" title="Simpan KML">🌍</button>
-            <button class="platinum-btn" onclick="openStoryExportModal()" title="Ekspor Story Map">📖</button>
+            <button class="platinum-btn" onclick="createNewMap()" title="New Map">📄</button>
+            <button class="platinum-btn" onclick="triggerGpxImport()" title="Import GPX">📂</button>
+            <button class="platinum-btn" onclick="downloadGeoJSON()" title="Save GeoJSON">💾</button>
+            <button class="platinum-btn" onclick="downloadKML()" title="Save KML">🌍</button>
+            <button class="platinum-btn" onclick="openStoryExportModal()" title="Export Story Map">📖</button>
             <input type="file" id="gpxInput" accept=".gpx" style="display: none;" onchange="handleGpxFile(this)">
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
-            <button class="platinum-btn icon-large" onclick="undo()" title="Undo">↩️</button>
-            <button class="platinum-btn icon-large" onclick="redo()" title="Redo">↪️</button>
+            <button class="platinum-btn" onclick="undo()" title="Undo">↩️</button>
+            <button class="platinum-btn" onclick="redo()" title="Redo">↪️</button>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
-            <button class="platinum-btn tool-btn" id="btn-marker" onclick="toggleDraw('Marker')">✚</button>
-            <button class="platinum-btn tool-btn" id="btn-line" onclick="toggleDraw('Line')">╱</button>
-            <button class="platinum-btn tool-btn" id="btn-poly" onclick="toggleDraw('Polygon')">▱</button>
-            <button class="platinum-btn tool-btn" id="btn-edit" onclick="toggleEdit()">✎</button>
-            <button class="platinum-btn tool-btn" id="btn-delete" onclick="toggleDelete()">✖</button>
+            <button class="platinum-btn tool-btn" id="btn-marker" onclick="toggleDraw('Marker')" title="Add Marker">✚</button>
+            <button class="platinum-btn tool-btn" id="btn-line" onclick="toggleDraw('Line')" title="Add Line">╱</button>
+            <button class="platinum-btn tool-btn" id="btn-poly" onclick="toggleDraw('Polygon')" title="Add Area">▱</button>
+            <button class="platinum-btn tool-btn" id="btn-edit" onclick="toggleEdit()" title="Edit Objects">✎</button>
+            <button class="platinum-btn tool-btn" id="btn-delete" onclick="toggleDelete()" title="Remove Objects">✖</button>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group" style="position: relative;">
@@ -116,24 +120,24 @@
                 <label style="display:block"><input type="checkbox" id="chk-route" checked onchange="updateLayerVisibility()"> 🛣️ Route</label>
                 <label style="display:block"><input type="checkbox" id="chk-normal" checked onchange="updateLayerVisibility()"> 🔵 Normal</label>
             </div>
-            <select id="basemapSelect" class="platinum-select" style="width: 60px;" onchange="changeBasemap(this.value)">
-                <option value="osm">1. Openstreetmap</option>
+            <select id="basemapSelect" class="platinum-select" style="width: 140px;" onchange="changeBasemap(this.value)">
+                <option value="osm">1. OpenStreetMap</option>
                 <option value="google-roadmap">2. Google Roadmap</option>
-                <option value="google-satellite">3. Google Satelite</option>
+                <option value="google-satellite">3. Google Satellite</option>
                 <option value="google-terrain">4. Google Terrain</option>
             </select>
-            <button class="platinum-btn" onclick="zoomToData()">⤢</button>
+            <button class="platinum-btn" onclick="zoomToData()" title="Zoom to Fit">⤢</button>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
-            <input type="text" id="searchInput" class="platinum-input" placeholder="Cari..." onkeypress="if(event.key==='Enter')searchLocation()" style="width: 100px;">
+            <input type="text" id="searchInput" class="platinum-input" placeholder="Search..." onkeypress="if(event.key==='Enter')searchLocation()" style="width: 100px;">
         </div>
     </div>
 
     <!-- MAP AREA -->
     <div id="map-wrapper">
         <div id="map"></div>
-        <button id="toggle-table-btn" class="platinum-btn" onclick="toggleTablePanel()">Tabel Data</button>
+        <button id="toggle-table-btn" class="platinum-btn" onclick="toggleTablePanel()">Data Table</button>
     </div>
 
     <!-- BOTTOM PANEL -->
@@ -143,11 +147,12 @@
                 <div class="panel-tab active" id="tab-stories" onclick="switchTab('stories')">📖 Stories & Routes</div>
                 <div class="panel-tab" id="tab-normal" onclick="switchTab('normal')">🔵 Waypoints</div>
             </div>
-            <div class="panel-close-btn" onclick="toggleTablePanel()">✕ Tutup</div>
+            <div style="padding:4px; font-size:10px; color:#555;">Press 'M' to cycle basemaps</div>
+            <div class="platinum-btn" onclick="toggleTablePanel()" style="margin:2px; padding:2px 8px;">✕ Close</div>
         </div>
         <div class="panel-content">
             <table class="data-table">
-                <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Details</th><th>Go</th></tr></thead>
+                <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Details</th><th>Action</th></tr></thead>
                 <tbody id="table-body"></tbody>
             </table>
         </div>
@@ -155,19 +160,19 @@
 
     <!-- MODALS -->
     <div id="props-modal" class="modal-window" style="width: 400px;">
-        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('props-modal')"></div><span>Properti Objek</span></div>
+        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('props-modal')"></div><span>Object Properties</span></div>
         <div class="platinum-content">
             <div class="form-group">
-                <label class="form-label">Tipe:</label>
-                <select id="prop-type" class="platinum-select">
+                <label class="form-label">Type:</label>
+                <select id="prop-type" class="platinum-select" style="width:100%">
                     <option value="normal">🔵 Normal Waypoint</option>
                     <option value="story">📖 Story Point</option>
                     <option value="route">🛣️ Route</option>
                 </select>
             </div>
-            <div class="form-group"><label class="form-label">Nama:</label><input type="text" id="prop-name" class="platinum-input"></div>
+            <div class="form-group"><label class="form-label">Name:</label><input type="text" id="prop-name" class="platinum-input" style="width:98%"></div>
             <div class="form-group">
-                <label class="form-label">Deskripsi Story:</label>
+                <label class="form-label">Story Description:</label>
                 <div class="editor-container">
                     <div class="editor-toolbar">
                         <button type="button" class="editor-btn" onclick="execCmd('bold')">B</button>
@@ -179,34 +184,69 @@
                     <textarea id="prop-desc-source" class="editor-source"></textarea>
                 </div>
             </div>
-            <div class="form-group"><input type="text" id="prop-id" class="platinum-input" readonly style="background: #eee; font-size:10px;"></div>
-            <div id="btn-view-chart-container" style="display:none; margin-bottom:10px;"><button class="platinum-btn" onclick="showElevationChart()" style="width:100%;">📈 Lihat Elevasi</button></div>
-            <div class="props-actions"><button class="platinum-btn" onclick="closeModal('props-modal')">Batal</button><button class="platinum-btn" onclick="saveProperties()" style="font-weight:bold">Simpan</button></div>
+            <div class="form-group"><input type="text" id="prop-id" class="platinum-input" readonly style="background: #eee; font-size:10px; width:98%"></div>
+            <div id="btn-view-chart-container" style="display:none; margin-bottom:10px;"><button class="platinum-btn" onclick="showElevationChart()" style="width:100%;">📈 View Elevation</button></div>
+            <div style="display:flex; justify-content: flex-end; gap:5px;">
+                <button class="platinum-btn" onclick="closeModal('props-modal')">Cancel</button>
+                <button class="platinum-btn" onclick="saveProperties()" style="font-weight:bold">Save</button>
+            </div>
         </div>
     </div>
 
     <div id="chart-modal" class="modal-window" style="width:500px">
-        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('chart-modal')"></div><span>Grafik Elevasi</span></div>
-        <div class="platinum-content"><div class="chart-container"><canvas id="elevationChart"></canvas></div><button class="platinum-btn" onclick="closeModal('chart-modal')" style="float:right; margin-top:5px">Tutup</button></div>
+        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('chart-modal')"></div><span>Elevation Profile</span></div>
+        <div class="platinum-content">
+            <div class="chart-container" style="height:250px;"><canvas id="elevationChart"></canvas></div>
+            <button class="platinum-btn" onclick="closeModal('chart-modal')" style="float:right; margin-top:5px">Close</button>
+        </div>
     </div>
 
     <div id="story-modal" class="modal-window">
-        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('story-modal')"></div><span>Ekspor Story Map</span></div>
+        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('story-modal')"></div><span>Export Story Map</span></div>
         <div class="platinum-content">
-            <div class="form-group"><label class="form-label">Judul Story:</label><input type="text" id="story-title-input" class="platinum-input" value="Perjalananku"></div>
-            <button class="platinum-btn" onclick="confirmExportStory()" style="width:100%; font-weight:bold">Ekspor HTML</button>
+            <div class="form-group"><label class="form-label">Story Title:</label><input type="text" id="story-title-input" class="platinum-input" value="My Journey" style="width:98%"></div>
+            <button class="platinum-btn" onclick="confirmExportStory()" style="width:100%; font-weight:bold">Generate HTML</button>
         </div>
     </div>
 
     <div id="about-modal" class="modal-window">
-        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('about-modal')"></div><span>Tentang</span></div>
-        <div class="platinum-content" style="text-align: center;"><h3>GeoEditor V11.1</h3><p>Dibuat oleh: Hidayatullah</p><button class="platinum-btn" onclick="closeModal('about-modal')">OK</button></div>
+        <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('about-modal')"></div><span>About</span></div>
+        <div class="platinum-content" style="text-align: center;">
+            <h3>GeoEditor V11.7</h3>
+            <p>English Edition</p>
+            <button class="platinum-btn" onclick="closeModal('about-modal')">OK</button>
+        </div>
+    </div>
+    
+    <!-- NEW: GENERIC CONFIRM MODAL -->
+    <div id="confirm-modal" class="modal-window" style="width: 300px;">
+        <div class="platinum-titlebar"><span>Confirmation</span></div>
+        <div class="platinum-content">
+            <p id="confirm-msg" style="margin: 10px 0; font-size: 11px;">Are you sure?</p>
+            <div style="display:flex; justify-content: flex-end; gap:5px;">
+                <button class="platinum-btn" onclick="closeModal('confirm-modal')">Cancel</button>
+                <button class="platinum-btn" onclick="executeConfirm()" style="font-weight:bold">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: GENERIC PROMPT MODAL -->
+    <div id="prompt-modal" class="modal-window" style="width: 300px;">
+        <div class="platinum-titlebar"><span>Input</span></div>
+        <div class="platinum-content">
+            <p id="prompt-msg" style="margin: 5px 0; font-size: 11px;">Enter value:</p>
+            <input type="text" id="prompt-input" class="platinum-input" style="width: 95%; margin-bottom: 10px;">
+            <div style="display:flex; justify-content: flex-end; gap:5px;">
+                <button class="platinum-btn" onclick="closeModal('prompt-modal')">Cancel</button>
+                <button class="platinum-btn" onclick="executePrompt()" style="font-weight:bold">OK</button>
+            </div>
+        </div>
     </div>
 
     <div id="toast">Ready.</div>
 
     <script>
-        // --- UTILITAS GLOBAL ---
+        // --- UTILS ---
         function getDist(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -218,25 +258,131 @@
         function getTimestampFromId(id) { if(!id) return 0; const p = id.split('_'); return p.length >= 2 ? parseInt(p[1]) || 0 : 0; }
         function resetButtonStates() { document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); }
 
-        // --- GLOBAL STATE ---
+        // --- STATE ---
         let map, editableLayers, currentLayer, pingLayer, chartInstance, activeEditLayer, isSourceMode = false;
         let iconNormal, iconStory, chartHoverMarker;
         let currentTab = 'stories';
         let baseLayersConfigs = {};
+        
+        // Modal callbacks
+        let pendingConfirmAction = null;
+        let pendingPromptAction = null;
 
-        // --- CORE UI FUNCTIONS ---
+        // --- CORE UI ---
         function showAbout() { document.getElementById('about-modal').style.display = 'block'; }
-        function closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; if (id === 'chart-modal' && chartHoverMarker) { map.removeLayer(chartHoverMarker); chartHoverMarker = null; } }
+        
+        function closeModal(id) { 
+            const m = document.getElementById(id); 
+            if (m) m.style.display = 'none'; 
+            if (id === 'chart-modal' && chartHoverMarker) { if(map.hasLayer(chartHoverMarker)) map.removeLayer(chartHoverMarker); chartHoverMarker = null; } 
+            
+            // Clear pending actions if cancelled via Close/X
+            if(id === 'confirm-modal') pendingConfirmAction = null;
+            if(id === 'prompt-modal') pendingPromptAction = null;
+        }
+        
         function showToast(m) { const t = document.getElementById('toast'); if (t) { t.innerText = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); } }
 
         function zoomToData() { if (editableLayers && editableLayers.getLayers().length) map.fitBounds(editableLayers.getBounds(), { padding: [50, 50] }); }
         function toggleLayersMenu() { const m = document.getElementById('layers-menu'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
+
+        // --- CUSTOM MODAL LOGIC ---
+        function showConfirm(msg, action) {
+            document.getElementById('confirm-msg').innerText = msg;
+            pendingConfirmAction = action;
+            document.getElementById('confirm-modal').style.display = 'block';
+        }
+
+        function executeConfirm() {
+            if (pendingConfirmAction) pendingConfirmAction();
+            document.getElementById('confirm-modal').style.display = 'none'; // Manual close to ensure action runs first
+            pendingConfirmAction = null;
+        }
+
+        function showPrompt(msg, action) {
+            document.getElementById('prompt-msg').innerText = msg;
+            document.getElementById('prompt-input').value = '';
+            pendingPromptAction = action;
+            document.getElementById('prompt-modal').style.display = 'block';
+            document.getElementById('prompt-input').focus();
+        }
+
+        function executePrompt() {
+            const val = document.getElementById('prompt-input').value;
+            if (pendingPromptAction) pendingPromptAction(val);
+            document.getElementById('prompt-modal').style.display = 'none';
+            pendingPromptAction = null;
+        }
+
+        // --- NUCLEAR CLEANUP FUNCTION ---
+        function createNewMap() {
+            showConfirm("Permanently clear ALL map data? This cannot be undone.", () => {
+                performMapReset();
+            });
+        }
+        
+        function performMapReset() {
+            // 1. Stop modes
+            map.pm.disableDraw();
+            map.pm.disableGlobalEditMode();
+            map.pm.disableGlobalRemovalMode();
+            resetButtonStates();
+
+            // 2. Remove the FeatureGroup from the map entirely
+            if (map.hasLayer(editableLayers)) {
+                map.removeLayer(editableLayers);
+            }
+            
+            // 3. Clear the internal array of the group
+            editableLayers.clearLayers();
+
+            // 4. Nuclear Option: Iterate over EVERY layer on the map and remove it
+            map.eachLayer(function(layer) {
+                if (layer === currentLayer) return;
+                if (layer === editableLayers) return;
+                map.removeLayer(layer);
+            });
+
+            // 5. Re-initialize a fresh FeatureGroup
+            editableLayers = new L.FeatureGroup();
+            map.addLayer(editableLayers);
+            
+            // 6. Re-link Geoman to the new group
+            map.pm.setGlobalOptions({ layerGroup: editableLayers });
+            
+            // 7. Clear storage and Reset UI
+            localStorage.removeItem('geoData');
+            document.getElementById('gpxInput').value = ''; 
+            
+            renderTable(currentTab);
+            closeModal('props-modal');
+            closeModal('chart-modal');
+            
+            showToast("Map reset completely (Nuclear option).");
+        }
+
+        // --- NAVIGATION ---
+        document.addEventListener('keydown', (e) => {
+            const isTyping = e.target.tagName === 'INPUT' || e.target.contentEditable === 'true' || e.target.tagName === 'TEXTAREA';
+            if (isTyping) return;
+            if (e.key.toLowerCase() === 'm') cycleBasemap();
+        });
+
+        function cycleBasemap() {
+            const select = document.getElementById('basemapSelect');
+            let nextIndex = select.selectedIndex + 1;
+            if (nextIndex >= select.options.length) nextIndex = 0;
+            select.selectedIndex = nextIndex;
+            changeBasemap(select.options[nextIndex].value);
+            showToast("Mode: " + select.options[nextIndex].text);
+        }
 
         function updateLayerVisibility() {
             const s = document.getElementById('chk-story').checked;
             const r = document.getElementById('chk-route').checked;
             const n = document.getElementById('chk-normal').checked;
             editableLayers.eachLayer(l => {
+                if(!l.feature) return;
                 const t = l.feature.properties.pointType;
                 let v = (t === 'story' && s) || (t === 'route' && r) || (t === 'normal' && n) || (!t && s);
                 v ? (!map.hasLayer(l) && map.addLayer(l)) : map.removeLayer(l);
@@ -248,7 +394,7 @@
             const p = document.getElementById('bottom-panel'), b = document.getElementById('toggle-table-btn');
             const isVisible = (p.style.display === 'flex');
             p.style.display = isVisible ? 'none' : 'flex';
-            b.innerText = isVisible ? 'Tabel Data' : 'Sembunyikan Tabel';
+            b.innerText = isVisible ? 'Data Table' : 'Hide Table';
             if (!isVisible) renderTable(currentTab);
         }
 
@@ -263,6 +409,7 @@
             const tbody = document.getElementById('table-body');
             if(!tbody) return; tbody.innerHTML = '';
             const layers = editableLayers.getLayers().filter(l => {
+                if(!l.feature) return false;
                 const pt = l.feature.properties.pointType;
                 return tab === 'stories' ? (pt === 'story' || pt === 'route') : (pt === 'normal');
             });
@@ -279,13 +426,13 @@
                 const tr = document.createElement('tr');
                 tr.onclick = (e) => { if(e.target.tagName !== 'BUTTON') flyToFeature(p.id); };
                 const desc = (p.description || '').replace(/<[^>]*>/g,'').substring(0, 40);
-                tr.innerHTML = `<td>${i+1}</td><td style="text-align:center;">${p.pointType === 'story' ? '📖' : (p.pointType === 'route' ? '🛣️' : '🔵')}</td><td><b>${p.name || 'Bab'}</b></td><td>${desc}...</td><td style="text-align:center;"><button class="platinum-btn" onclick="flyToFeature('${p.id}')" style="padding:2px 6px; font-size:10px;">Go</button></td>`;
+                tr.innerHTML = `<td>${i+1}</td><td style="text-align:center;">${p.pointType === 'story' ? '📖' : (p.pointType === 'route' ? '🛣️' : '🔵')}</td><td><b>${p.name || 'Untitled'}</b></td><td>${desc}...</td><td style="text-align:center;"><button class="platinum-btn" onclick="flyToFeature('${p.id}')" style="padding:2px 6px; font-size:10px;">Go</button></td>`;
                 tbody.appendChild(tr);
             });
         }
 
         function flyToFeature(id) {
-            const l = editableLayers.getLayers().find(x => x.feature.properties.id === id);
+            const l = editableLayers.getLayers().find(x => x.feature && x.feature.properties.id === id);
             if(l) {
                 if(pingLayer) map.removeLayer(pingLayer);
                 const c = l instanceof L.Marker ? l.getLatLng() : l.getBounds().getCenter();
@@ -293,7 +440,7 @@
                 l.openPopup();
                 const icon = L.divIcon({ className:'no-bg', html:'<div class="radar-ping"></div>', iconSize:[20,20], iconAnchor:[10,10] });
                 pingLayer = L.marker(c, {icon: icon, interactive: false}).addTo(map);
-                setTimeout(() => { if(pingLayer) map.removeLayer(pingLayer); }, 3000);
+                setTimeout(() => { if(pingLayer) { map.removeLayer(pingLayer); pingLayer = null; } }, 3000);
             }
         }
 
@@ -303,9 +450,16 @@
             }
         }
 
-        // --- EDITOR & IO ---
+        // --- EDITOR ---
         function execCmd(c,v) { if(!isSourceMode) { document.getElementById('prop-desc-editor').focus(); document.execCommand(c,false,v); } }
-        function promptImage() { const u=prompt("URL Image:"); if(u) execCmd('insertImage', u); }
+        
+        // Replaced prompt() with showPrompt()
+        function promptImage() { 
+            showPrompt("Image URL:", (u) => {
+                if(u) execCmd('insertImage', u); 
+            });
+        }
+        
         function toggleSourceMode() {
             const e = document.getElementById('prop-desc-editor'), s = document.getElementById('prop-desc-source');
             if(isSourceMode) { e.innerHTML = s.value; s.style.display = 'none'; e.style.display = 'block'; isSourceMode = false; }
@@ -332,24 +486,29 @@
             saveToLocalStorage(); activeEditLayer.bindPopup(`<b>${p.name}</b>`); closeModal('props-modal'); updateLayerVisibility();
         }
 
+        // --- IO ---
         function downloadKML() {
             const layers = editableLayers.getLayers();
-            if(!layers.length) return alert("Peta Kosong!");
+            if(!layers.length) {
+                showToast("Map is empty!");
+                return;
+            }
             let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
             layers.forEach(l => {
+                if(!l.feature) return;
                 const p = l.feature.properties;
                 const coords = l instanceof L.Marker ? `${l.getLatLng().lng},${l.getLatLng().lat},0` : l.getLatLngs().map(ll => `${ll.lng},${ll.lat},0`).join(' ');
-                kml += `<Placemark><name>${p.name||'Poin'}</name><description><![CDATA[${p.description||''}]]></description>\n`;
+                kml += `<Placemark><name>${p.name||'Point'}</name><description><![CDATA[${p.description||''}]]></description>\n`;
                 kml += l instanceof L.Marker ? `<Point><coordinates>${coords}</coordinates></Point>` : `<LineString><coordinates>${coords}</coordinates></LineString>`;
                 kml += `</Placemark>\n`;
             });
             kml += `</Document></kml>`;
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'})); a.download = "perjalanan.kml"; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'})); a.download = "export.kml"; a.click();
         }
 
         function downloadGeoJSON() {
-            const data = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); j.properties = l.feature.properties; return j; }) };
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "data.geojson"; a.click();
+            const data = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) };
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "map_data.geojson"; a.click();
         }
 
         function triggerGpxImport() { document.getElementById('gpxInput').click(); }
@@ -362,28 +521,16 @@
                 const lat = parseFloat(wpts[i].getAttribute('lat')), lon = parseFloat(wpts[i].getAttribute('lon'));
                 if(!isNaN(lat)) {
                     const ele = getTagVal(wpts[i], 'ele');
-                    const time = getTagVal(wpts[i], 'time');
                     const descTag = getTagVal(wpts[i], 'desc');
-                    const cmtTag = getTagVal(wpts[i], 'cmt');
-
                     let metaHtml = "";
                     if(ele) metaHtml += `<div><b>Elevation:</b> ${ele} m</div>`;
-                    if(time) metaHtml += `<div><b>Time:</b> ${new Date(time).toLocaleString('id-ID')}</div>`;
                     if(descTag) metaHtml += `<div><b>Desc:</b> ${descTag}</div>`;
-                    if(cmtTag) metaHtml += `<div><b>Comment:</b> ${cmtTag}</div>`;
-
                     const m = L.marker([lat, lon], {icon: iconNormal});
-                    m.feature = { type:'Feature', properties: { 
-                        id: "ID_" + Date.now() + "_" + i, 
-                        pointType: 'normal', 
-                        name: getTagVal(wpts[i],'name') || `WPT ${i+1}`,
-                        description: metaHtml
-                    }};
+                    m.feature = { type:'Feature', properties: { id: "ID_" + Date.now() + "_" + i, pointType: 'normal', name: getTagVal(wpts[i],'name') || `Waypoint ${i+1}`, description: metaHtml }};
                     m.on('click', ev => handleLayerClick(ev, m)); editableLayers.addLayer(m);
                 }
             }
             const trks = doc.getElementsByTagName('trk');
-            let hasRoute = false;
             for(let i=0; i<trks.length; i++){
                 const pts = trks[i].getElementsByTagName('trkpt'), latlngs = [], eleData = [];
                 let dTotal = 0, eleGain = 0;
@@ -400,130 +547,181 @@
                 }
                 if(latlngs.length > 1) {
                     const poly = L.polyline(latlngs, {color:'red'});
-                    poly.feature = { type:'Feature', properties: { 
-                        id: 'ID_' + Date.now() + '_' + i, pointType: 'route', 
-                        name: getTagVal(trks[i],'name') || 'Route', 
-                        distance: dTotal.toFixed(2) + ' km',
-                        elevation_gain: Math.round(eleGain) + ' m',
-                        elevationData: eleData 
-                    }};
+                    poly.feature = { type:'Feature', properties: { id: 'ID_' + Date.now() + '_' + i, pointType: 'route', name: getTagVal(trks[i],'name') || 'Imported Route', distance: dTotal.toFixed(2) + ' km', elevation_gain: Math.round(eleGain) + ' m', elevationData: eleData }};
                     poly.on('click', ev => handleLayerClick(ev, poly)); editableLayers.addLayer(poly);
-                    hasRoute = true;
                 }
             }
             saveToLocalStorage(); updateLayerVisibility(); zoomToData();
-            if(hasRoute) document.getElementById('chk-normal').checked = false;
+            showToast("GPX Imported Successfully");
         }
 
-        // --- EXPORT ---
+        // --- CHART ---
+        function showElevationChart() {
+            if(!activeEditLayer || !activeEditLayer.feature.properties.elevationData) return;
+            document.getElementById('chart-modal').style.display = 'block';
+            const dt = activeEditLayer.feature.properties.elevationData;
+            const ctx = document.getElementById('elevationChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: dt.map(i => i.x), datasets: [{ label: 'Elevation (m)', data: dt.map(i => i.y), borderColor: 'red', fill: true, backgroundColor: 'rgba(255,0,0,0.1)', tension: 0.1 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    onHover: (e, els) => {
+                        if(els.length > 0) {
+                            const p = dt[els[0].index];
+                            if(!chartHoverMarker) chartHoverMarker = L.circleMarker([p.lat, p.lon], {radius: 8, color: 'blue'}).addTo(map);
+                            else chartHoverMarker.setLatLng([p.lat, p.lon]);
+                        }
+                    }
+                }
+            });
+        }
+
+        function openStoryExportModal() { document.getElementById('story-modal').style.display = 'block'; }
+        
         function confirmExportStory() {
             const title = document.getElementById('story-title-input').value;
             const layers = editableLayers.getLayers();
-            const stories = layers.filter(l => l.feature.properties.pointType !== 'normal').sort((a,b) => {
-                const tA = a.properties.pointType, tB = b.feature.properties.pointType;
-                if(tA === 'route' && tB !== 'route') return 1;
-                if(tB === 'route' && tA !== 'route') return -1;
-                return (a.properties.id||'').localeCompare(b.properties.id||'');
-            });
-            const geoDataStr = JSON.stringify({ type: "FeatureCollection", features: layers.map(l => { const j = l.toGeoJSON(); j.properties = l.feature.properties; return j; }) });
+            const geoDataStr = JSON.stringify({ type: "FeatureCollection", features: layers.map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) });
+            
+            // Breaking up script tags to avoid HTML parser issues
+            const scStart = '<' + 'script>';
+            const scEnd = '<' + '/script>';
 
-            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script><style>body{margin:0;display:flex;height:100vh;font-family:sans-serif}#story{flex:1;overflow-y:auto;padding:20px;border-right:1px solid #ccc;display:flex;flex-direction:column}#map-container{flex:2;position:relative}#map{height:100%;width:100%}.nav-btns{margin-top:20px;display:flex;gap:10px}.btn{padding:10px;cursor:pointer;background:#6699CC;color:white;border:none;border-radius:4px}.sec{padding:15px;border-bottom:1px solid #eee;cursor:pointer}.active{background:#eef;border-left:5px solid #32CD32}#chart-panel{height:200px;display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);z-index:999;padding:10px;border-top:1px solid #ccc}img{max-width:100%}.tag{background:#eee;padding:3px 6px;border-radius:3px;font-size:0.85em;margin-right:5px;color:#333}</style></head><body>
-            <div id="story"><h1>${title}</h1><div id="content" style="flex:1; overflow-y:auto;"></div><div class="nav-btns"><button class="btn" onclick="prev()">◀ Previous</button><button class="btn" onclick="next()">Next ▶</button></div></div>
-            <div id="map-container"><div id="map"></div><div id="chart-panel"><canvas id="chart"></canvas></div></div>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>
-            const data=${geoDataStr.replace(/<\/script>/g,'<\\/script>')}; 
-            const map=L.map('map').setView([0,0],2); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            const iconN=L.divIcon({html:'✚',className:'retro-marker marker-yellow',iconSize:[24,24],iconAnchor:[12,12]});
-            const iconS=L.divIcon({html:'✚',className:'retro-marker marker-green',iconSize:[24,24],iconAnchor:[12,12]});
-            let hM = null; const sG = L.featureGroup().addTo(map), rG = L.featureGroup().addTo(map), nG = L.featureGroup();
-            L.geoJSON(data, {
-                pointToLayer: (f,l) => L.marker(l, {icon: f.properties.pointType === 'story' ? iconS : iconN}),
-                onEachFeature: (f,l) => {
-                    const pt = f.properties.pointType;
-                    if(pt === 'story') sG.addLayer(l); else if(pt === 'route') rG.addLayer(l); else nG.addLayer(l);
-                    l.bindPopup('<b>'+(f.properties.name||'Point')+'</b>');
-                }
-            });
-            L.control.layers(null, {"Stories": sG, "Routes": rG, "Normal Points": nG}).addTo(map);
-            const stories = data.features.filter(f => f.properties.pointType !== 'normal').sort((a,b) => {
-                const tA = a.properties.pointType, tB = b.feature.properties.pointType;
-                if(tA === 'route' && tB !== 'route') return 1;
-                if(tB === 'route' && tA !== 'route') return -1;
-                return (a.properties.id||'').localeCompare(b.properties.id||'');
-            });
-            let cur = 0; stories.forEach((f,i)=>{
-                const p = f.properties;
-                const d=document.createElement('div'); d.className='sec'; d.id='s'+i;
-                let html = '<h3>'+(p.name||'Bab')+'</h3>'+(p.description||'');
-                if (p.pointType === 'route') {
-                    html += '<div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">';
-                    if(p.distance) html += '<span class="tag">📏 Length: ' + p.distance + '</span>';
-                    if(p.distance) { let num = parseFloat(p.distance); html += '<span class="tag">🔄 Return: ' + (num*2).toFixed(2) + ' km</span>'; }
-                    if(p.elevation_gain) html += '<span class="tag">⛰️ Elev Gain: ' + p.elevation_gain + '</span>';
-                    html += '</div>';
-                }
-                d.innerHTML = html; d.onclick=()=>go(i); document.getElementById('content').appendChild(d);
-            });
-            function go(i){ cur = i; document.querySelectorAll('.sec').forEach(x=>x.classList.remove('active')); document.getElementById('s'+i).classList.add('active');
-                const f = stories[i]; if(f.geometry.type==='Point') { map.flyTo([f.geometry.coordinates[1],f.geometry.coordinates[0]],16); document.getElementById('chart-panel').style.display='none'; }
-                else { map.fitBounds(L.geoJSON(f).getBounds()); if(f.properties.elevationData) drawChart(f.properties.elevationData); }
+            const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    ${scStart} src="https://cdn.jsdelivr.net/npm/chart.js">${scEnd}
+    <style>
+        body{margin:0;display:flex;height:100vh;font-family:sans-serif}
+        #story{flex:1;overflow-y:auto;padding:20px;border-right:1px solid #ccc;display:flex;flex-direction:column}
+        #map-container{flex:2;position:relative}
+        #map{height:100%;width:100%}
+        .nav-btns{margin-top:20px;display:flex;gap:10px}
+        .btn{padding:10px;cursor:pointer;background:#6699CC;color:white;border:none;border-radius:4px}
+        .sec{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
+        .active{background:#eef;border-left:5px solid #32CD32}
+        #chart-panel{height:200px;display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);z-index:999;padding:10px;border-top:1px solid #ccc}
+        img{max-width:100%}
+        .tag{background:#eee;padding:3px 6px;border-radius:3px;font-size:0.85em;margin-right:5px;color:#333}
+        .retro-marker{font-size:24px;font-weight:900;text-align:center;text-shadow:1px 1px 0 #000;cursor:pointer}
+        .marker-green{color:#32CD32}
+        .marker-yellow{color:#FFD700}
+    </style>
+</head>
+<body>
+    <div id="story">
+        <h1>${title}</h1>
+        <div id="content" style="flex:1; overflow-y:auto;"></div>
+        <div class="nav-btns"><button class="btn" onclick="prev()">◀ Previous</button><button class="btn" onclick="next()">Next ▶</button></div>
+    </div>
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="chart-panel"><canvas id="chart"></canvas></div>
+    </div>
+    ${scStart} src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">${scEnd}
+    ${scStart}
+        const data=${geoDataStr}; 
+        const map=L.map('map').setView([0,0],2); 
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); 
+        const iconN=L.divIcon({html:'✚',className:'retro-marker marker-yellow',iconSize:[24,24],iconAnchor:[12,12]}); 
+        const iconS=L.divIcon({html:'✚',className:'retro-marker marker-green',iconSize:[24,24],iconAnchor:[12,12]}); 
+        let hM = null; 
+        const sG = L.featureGroup().addTo(map), rG = L.featureGroup().addTo(map), nG = L.featureGroup(); 
+        L.geoJSON(data,{
+            pointToLayer:(f,l)=>L.marker(l,{icon:f.properties.pointType==='story'?iconS:iconN}),
+            onEachFeature:(f,l)=>{
+                const pt=f.properties.pointType;
+                if(pt==='story')sG.addLayer(l);
+                else if(pt==='route')rG.addLayer(l);
+                else nG.addLayer(l);
+                l.bindPopup('<b>'+(f.properties.name||'Point')+'</b>');
             }
-            function next(){ if(cur < stories.length-1) go(cur+1); }
-            function prev(){ if(cur > 0) go(cur-1); }
-            let ch=null; function drawChart(dt){
-                document.getElementById('chart-panel').style.display='block'; const ctx=document.getElementById('chart'); if(ch)ch.destroy();
-                ch=new Chart(ctx,{type:'line',data:{labels:dt.map(x=>x.x),datasets:[{label:'Elev',data:dt.map(x=>x.y),borderColor:'red',fill:true}]},options:{
-                    responsive:true,maintainAspectRatio:false,onHover:(e,els)=>{
-                        if(els.length > 0) { const p = dt[els[0].index]; if(p.lat){ if(!hM) hM = L.circleMarker([p.lat, p.lon], {radius:8,color:'red'}).addTo(map); else hM.setLatLng([p.lat, p.lon]); } }
-                    }
-                }});
+        }); 
+        const stories=data.features.filter(f=>f.properties.pointType!=='normal'); 
+        let cur=0; 
+        stories.forEach((f,i)=>{
+            const p=f.properties;
+            const d=document.createElement('div');
+            d.className='sec'; d.id='s'+i;
+            let h='<h3>'+(p.name||'Untitled')+'</h3>'+(p.description||'');
+            if(p.pointType==='route'){
+                h+='<div style="margin-top:10px;">';
+                if(p.distance)h+='<span class="tag">📏 Length: '+p.distance+'</span>';
+                if(p.elevation_gain)h+='<span class="tag">⛰️ Elev Gain: '+p.elevation_gain+'</span>';
+                h+='</div>';
             }
-            window.onload = () => { if(stories.length) go(0); };
-            <\/script><style>.retro-marker{font-size:24px;font-weight:900;text-align:center;text-shadow:1px 1px 0 #000;cursor:pointer}.marker-green{color:#32CD32}.marker-yellow{color:#FFD700}</style></body></html>`;
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], {type: 'text/html'})); a.download = "story.html"; a.click(); closeModal('story-modal');
+            d.innerHTML=h;
+            d.onclick=()=>go(i);
+            document.getElementById('content').appendChild(d);
+        });
+        function go(i){
+            cur=i;
+            document.querySelectorAll('.sec').forEach(x=>x.classList.remove('active'));
+            document.getElementById('s'+i).classList.add('active');
+            const f=stories[i];
+            if(f.geometry.type==='Point'){
+                map.flyTo([f.geometry.coordinates[1],f.geometry.coordinates[0]],16);
+                document.getElementById('chart-panel').style.display='none';
+            }else{
+                map.fitBounds(L.geoJSON(f).getBounds());
+                if(f.properties.elevationData)drawChart(f.properties.elevationData);
+            }
         }
-
-        // --- CONTROLS ---
-        function toggleDraw(s) { const b = document.getElementById('btn-' + s.toLowerCase()); map.pm.disableDraw(); resetButtonStates(); if(!b.classList.contains('active')){ map.pm.enableDraw(s, { snappable: true, markerStyle: { icon: iconStory } }); b.classList.add('active'); } }
-        function toggleEdit() { const b=document.getElementById('btn-edit'); const on=b.classList.contains('active'); map.pm.disableDraw(); map.pm.disableGlobalEditMode(); resetButtonStates(); if(!on){ map.pm.enableGlobalEditMode(); b.classList.add('active'); } }
-        function toggleDelete() { const b=document.getElementById('btn-delete'); const on=b.classList.contains('active'); map.pm.disableDraw(); map.pm.disableGlobalEditMode(); map.pm.disableGlobalRemovalMode(); resetButtonStates(); if(!on){ map.pm.enableGlobalRemovalMode(); b.classList.add('active'); } }
-        function undo() { map.pm.undo(); saveToLocalStorage(); }
-        function redo() { map.pm.redo(); saveToLocalStorage(); }
-
-        async function searchLocation() {
-            const q = document.getElementById('searchInput').value;
-            if(!q) return;
-            try {
-                const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q));
-                const d = await res.json();
-                if(d.length) { map.flyTo([d[0].lat, d[0].lon], 15); showToast("Lokasi ditemukan!"); }
-            } catch(e) { showToast("Error pencarian."); }
+        function next(){if(cur<stories.length-1)go(cur+1);}
+        function prev(){if(cur>0)go(cur-1);}
+        let ch=null;
+        function drawChart(dt){
+            document.getElementById('chart-panel').style.display='block';
+            const ctx=document.getElementById('chart');
+            if(ch)ch.destroy();
+            ch=new Chart(ctx,{
+                type:'line',
+                data:{labels:dt.map(x=>x.x),datasets:[{label:'Elevation',data:dt.map(x=>x.y),borderColor:'red',fill:true}]},
+                options:{
+                    responsive:true,maintainAspectRatio:false,
+                    onHover:(e,els)=>{
+                        if(els.length>0){
+                            const p=dt[els[0].index];
+                            if(p.lat){
+                                if(!hM)hM=L.circleMarker([p.lat,p.lon],{radius:8,color:'red'}).addTo(map);
+                                else hM.setLatLng([p.lat,p.lon]);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        window.onload=()=>{if(stories.length)go(0);};
+    ${scEnd}
+</body>
+</html>`;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], {type: 'text/html'})); a.download = "story_map.html"; a.click(); closeModal('story-modal');
         }
 
         function changeBasemap(v) { if(currentLayer) map.removeLayer(currentLayer); currentLayer = L.tileLayer(baseLayersConfigs[v]._url, baseLayersConfigs[v].options).addTo(map); }
 
-        function saveToLocalStorage() { if(!editableLayers) return; const d = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); j.properties = l.feature.properties; return j; }) }; localStorage.setItem('geoData', JSON.stringify(d)); }
+        function saveToLocalStorage() { if(!editableLayers) return; const d = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) }; localStorage.setItem('geoData', JSON.stringify(d)); }
         function loadStorage() { const d = localStorage.getItem('geoData'); if(d){ const j = JSON.parse(d); L.geoJSON(j, { pointToLayer: (f,l) => L.marker(l, {icon: f.properties.pointType === 'story' ? iconStory : iconNormal}), onEachFeature: (f,l) => { l.feature = f; l.on('click', e => handleLayerClick(e, l)); editableLayers.addLayer(l); } }); updateLayerVisibility(); } }
         
-        // --- INITIALIZATION ---
         function initMap() {
             map = L.map('map', { center: [-6.1751, 106.8272], zoom: 13, zoomControl: false, preferCanvas: true });
             editableLayers = new L.FeatureGroup(); map.addLayer(editableLayers);
             L.control.zoom({ position: 'topright' }).addTo(map);
-
             iconNormal = L.divIcon({ className: 'retro-marker marker-yellow', html: '✚', iconSize: [24, 24], iconAnchor: [12, 12] });
             iconStory = L.divIcon({ className: 'retro-marker marker-green', html: '✚', iconSize: [24, 24], iconAnchor: [12, 12] });
-
             baseLayersConfigs = {
                 'osm': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }),
-                'google-roadmap': L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=id&x={x}&y={y}&z={z}', { maxZoom: 20 }),
-                'google-satellite': L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=id&x={x}&y={y}&z={z}', { maxZoom: 20 }),
-                'google-terrain': L.tileLayer('http://mt0.google.com/vt/lyrs=p&hl=id&x={x}&y={y}&z={z}', { maxZoom: 20 })
+                'google-roadmap': L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', { maxZoom: 20 }),
+                'google-satellite': L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', { maxZoom: 20 }),
+                'google-terrain': L.tileLayer('http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}', { maxZoom: 20 })
             };
-
             currentLayer = baseLayersConfigs['osm'].addTo(map);
-            map.pm.setLang('id'); map.pm.setGlobalOptions({ layerGroup: editableLayers });
-            
+            map.pm.setLang('en'); map.pm.setGlobalOptions({ layerGroup: editableLayers });
             map.on('pm:create', e => {
                 const l = e.layer; editableLayers.addLayer(l);
                 if(l instanceof L.Marker) l.setIcon(iconStory);
@@ -531,14 +729,9 @@
                 l.on('click', ev => handleLayerClick(ev, l));
                 saveToLocalStorage(); setTimeout(() => openProps(l), 200);
             });
-            
-            map.on('pm:remove', saveToLocalStorage);
-            map.on('pm:edit', saveToLocalStorage);
-            map.on('pm:dragend', saveToLocalStorage);
-            
+            map.on('pm:remove', saveToLocalStorage); map.on('pm:edit', saveToLocalStorage); map.on('pm:dragend', saveToLocalStorage);
             loadStorage();
         }
-
         window.onload = initMap;
     </script>
 </body>
