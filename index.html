@@ -108,7 +108,7 @@
         <div class="toolbar-group">
             <button class="platinum-btn tool-btn" id="btn-marker" onclick="toggleDraw('Marker')" title="Add Marker">✚</button>
             <button class="platinum-btn tool-btn" id="btn-line" onclick="toggleDraw('Line')" title="Add Line">╱</button>
-            <button class="platinum-btn tool-btn" id="btn-poly" onclick="toggleDraw('Polygon')" title="Add Area">▱</button>
+            <button class="platinum-btn tool-btn" id="btn-polygon" onclick="toggleDraw('Polygon')" title="Add Area">▱</button>
             <button class="platinum-btn tool-btn" id="btn-edit" onclick="toggleEdit()" title="Edit Objects">✎</button>
             <button class="platinum-btn tool-btn" id="btn-delete" onclick="toggleDelete()" title="Remove Objects">✖</button>
         </div>
@@ -212,13 +212,13 @@
     <div id="about-modal" class="modal-window">
         <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('about-modal')"></div><span>About</span></div>
         <div class="platinum-content" style="text-align: center;">
-            <h3>GeoEditor V11.7</h3>
+            <h3>GeoEditor V11.7.6</h3>
             <p>English Edition</p>
             <button class="platinum-btn" onclick="closeModal('about-modal')">OK</button>
         </div>
     </div>
     
-    <!-- NEW: GENERIC CONFIRM MODAL -->
+    <!-- GENERIC CONFIRM MODAL -->
     <div id="confirm-modal" class="modal-window" style="width: 300px;">
         <div class="platinum-titlebar"><span>Confirmation</span></div>
         <div class="platinum-content">
@@ -230,7 +230,7 @@
         </div>
     </div>
 
-    <!-- NEW: GENERIC PROMPT MODAL -->
+    <!-- GENERIC PROMPT MODAL -->
     <div id="prompt-modal" class="modal-window" style="width: 300px;">
         <div class="platinum-titlebar"><span>Input</span></div>
         <div class="platinum-content">
@@ -286,6 +286,70 @@
         function zoomToData() { if (editableLayers && editableLayers.getLayers().length) map.fitBounds(editableLayers.getBounds(), { padding: [50, 50] }); }
         function toggleLayersMenu() { const m = document.getElementById('layers-menu'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
 
+        // --- CONTROLS ---
+        function toggleDraw(s) { 
+            const b = document.getElementById('btn-' + s.toLowerCase()); 
+            // Turn off everything else first
+            map.pm.disableDraw();
+            map.pm.disableGlobalEditMode();
+            map.pm.disableGlobalRemovalMode();
+            
+            const wasActive = b.classList.contains('active');
+            resetButtonStates(); 
+            
+            if(!wasActive){ 
+                map.pm.enableDraw(s, { snappable: true, markerStyle: { icon: iconStory } }); 
+                b.classList.add('active'); 
+            } 
+        }
+
+        // FIXED: Robust Edit Toggle
+        function toggleEdit() { 
+            const b = document.getElementById('btn-edit'); 
+            const wasActive = b.classList.contains('active');
+            
+            // 1. Force disable everything first
+            map.pm.disableDraw();
+            map.pm.disableGlobalEditMode();
+            map.pm.disableGlobalRemovalMode();
+            resetButtonStates(); 
+            
+            // 2. If it wasn't active before, enable it now
+            if(!wasActive){ 
+                map.pm.enableGlobalEditMode(); 
+                b.classList.add('active'); 
+            }
+        }
+
+        function toggleDelete() { 
+            const b = document.getElementById('btn-delete'); 
+            const wasActive = b.classList.contains('active');
+            
+            map.pm.disableDraw();
+            map.pm.disableGlobalEditMode();
+            map.pm.disableGlobalRemovalMode();
+            resetButtonStates(); 
+            
+            if(!wasActive){ 
+                map.pm.enableGlobalRemovalMode(); 
+                b.classList.add('active'); 
+            } 
+        }
+
+        function undo() { map.pm.undo(); saveToLocalStorage(); }
+        function redo() { map.pm.redo(); saveToLocalStorage(); }
+
+        async function searchLocation() {
+            const q = document.getElementById('searchInput').value;
+            if(!q) return;
+            try {
+                const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q));
+                const d = await res.json();
+                if(d.length) { map.flyTo([d[0].lat, d[0].lon], 15); showToast("Location found!"); }
+                else { showToast("Not found."); }
+            } catch(e) { showToast("Search error."); }
+        }
+
         // --- CUSTOM MODAL LOGIC ---
         function showConfirm(msg, action) {
             document.getElementById('confirm-msg').innerText = msg;
@@ -295,7 +359,7 @@
 
         function executeConfirm() {
             if (pendingConfirmAction) pendingConfirmAction();
-            document.getElementById('confirm-modal').style.display = 'none'; // Manual close to ensure action runs first
+            document.getElementById('confirm-modal').style.display = 'none'; 
             pendingConfirmAction = null;
         }
 
@@ -436,7 +500,8 @@
             if(l) {
                 if(pingLayer) map.removeLayer(pingLayer);
                 const c = l instanceof L.Marker ? l.getLatLng() : l.getBounds().getCenter();
-                l instanceof L.Marker ? map.flyTo(c, 16) : map.flyToBounds(l.getBounds());
+                // CHANGED: Zoom level to 18 (safe max) instead of 16
+                l instanceof L.Marker ? map.flyTo(c, 21) : map.flyToBounds(l.getBounds());
                 l.openPopup();
                 const icon = L.divIcon({ className:'no-bg', html:'<div class="radar-ping"></div>', iconSize:[20,20], iconAnchor:[10,10] });
                 pingLayer = L.marker(c, {icon: icon, interactive: false}).addTo(map);
@@ -453,7 +518,6 @@
         // --- EDITOR ---
         function execCmd(c,v) { if(!isSourceMode) { document.getElementById('prop-desc-editor').focus(); document.execCommand(c,false,v); } }
         
-        // Replaced prompt() with showPrompt()
         function promptImage() { 
             showPrompt("Image URL:", (u) => {
                 if(u) execCmd('insertImage', u); 
@@ -585,27 +649,26 @@
             const layers = editableLayers.getLayers();
             const geoDataStr = JSON.stringify({ type: "FeatureCollection", features: layers.map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) });
             
-            // Breaking up script tags to avoid HTML parser issues
-            const scStart = '<' + 'script>';
-            const scEnd = '<' + '/script>';
-
+            // FIXED: Correctly constructing script tags to prevent HTML corruption
             const html = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    ${scStart} src="https://cdn.jsdelivr.net/npm/chart.js">${scEnd}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
     <style>
         body{margin:0;display:flex;height:100vh;font-family:sans-serif}
         #story{flex:1;overflow-y:auto;padding:20px;border-right:1px solid #ccc;display:flex;flex-direction:column}
-        #map-container{flex:2;position:relative}
-        #map{height:100%;width:100%}
+        /* Changed layout to Flex column to prevent overlay overlap */
+        #map-container{flex:2;position:relative;display:flex;flex-direction:column}
+        #map{flex:1;width:100%}
         .nav-btns{margin-top:20px;display:flex;gap:10px}
         .btn{padding:10px;cursor:pointer;background:#6699CC;color:white;border:none;border-radius:4px}
         .sec{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
         .active{background:#eef;border-left:5px solid #32CD32}
-        #chart-panel{height:200px;display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,0.9);z-index:999;padding:10px;border-top:1px solid #ccc}
+        /* Adjusted chart panel to be part of flex flow, not absolute */
+        #chart-panel{height:250px;display:none;background:rgba(255,255,255,1);z-index:999;padding:10px;border-top:1px solid #ccc;box-sizing:border-box}
         img{max-width:100%}
         .tag{background:#eee;padding:3px 6px;border-radius:3px;font-size:0.85em;margin-right:5px;color:#333}
         .retro-marker{font-size:24px;font-weight:900;text-align:center;text-shadow:1px 1px 0 #000;cursor:pointer}
@@ -623,15 +686,28 @@
         <div id="map"></div>
         <div id="chart-panel"><canvas id="chart"></canvas></div>
     </div>
-    ${scStart} src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">${scEnd}
-    ${scStart}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+    <script>
         const data=${geoDataStr}; 
         const map=L.map('map').setView([0,0],2); 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map); 
         const iconN=L.divIcon({html:'✚',className:'retro-marker marker-yellow',iconSize:[24,24],iconAnchor:[12,12]}); 
         const iconS=L.divIcon({html:'✚',className:'retro-marker marker-green',iconSize:[24,24],iconAnchor:[12,12]}); 
         let hM = null; 
-        const sG = L.featureGroup().addTo(map), rG = L.featureGroup().addTo(map), nG = L.featureGroup(); 
+        
+        // Feature groups
+        const sG = L.featureGroup().addTo(map);
+        const rG = L.featureGroup().addTo(map);
+        const nG = L.featureGroup(); // Not added by default to match "disable" state, but togglable
+        
+        // Add Layer Control for toggling
+        const overlays = {
+            "Stories": sG,
+            "Routes": rG,
+            "Normal Points": nG
+        };
+        L.control.layers(null, overlays, {collapsed: false}).addTo(map);
+
         L.geoJSON(data,{
             pointToLayer:(f,l)=>L.marker(l,{icon:f.properties.pointType==='story'?iconS:iconN}),
             onEachFeature:(f,l)=>{
@@ -664,12 +740,17 @@
             document.querySelectorAll('.sec').forEach(x=>x.classList.remove('active'));
             document.getElementById('s'+i).classList.add('active');
             const f=stories[i];
+            
+            // Hide chart by default to reset view, will show if route
+            document.getElementById('chart-panel').style.display='none';
+            map.invalidateSize();
+
             if(f.geometry.type==='Point'){
-                map.flyTo([f.geometry.coordinates[1],f.geometry.coordinates[0]],16);
-                document.getElementById('chart-panel').style.display='none';
+                // CHANGED: Zoom level to 18 (safe max) instead of 16
+                map.flyTo([f.geometry.coordinates[1],f.geometry.coordinates[0]],21);
             }else{
                 map.fitBounds(L.geoJSON(f).getBounds());
-                if(f.properties.elevationData)drawChart(f.properties.elevationData);
+                if(f.properties.elevationData) drawChart(f.properties.elevationData);
             }
         }
         function next(){if(cur<stories.length-1)go(cur+1);}
@@ -677,6 +758,8 @@
         let ch=null;
         function drawChart(dt){
             document.getElementById('chart-panel').style.display='block';
+            map.invalidateSize(); // Ensure map resizes to fit new container height
+            
             const ctx=document.getElementById('chart');
             if(ch)ch.destroy();
             ch=new Chart(ctx,{
@@ -695,9 +778,14 @@
                     }
                 }
             });
+            // Re-fit bounds after map resize to ensure route is visible
+            const f=stories[cur];
+            if(f && f.geometry.type!=='Point'){
+                 setTimeout(() => map.fitBounds(L.geoJSON(f).getBounds()), 300);
+            }
         }
         window.onload=()=>{if(stories.length)go(0);};
-    ${scEnd}
+    <\/script>
 </body>
 </html>`;
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], {type: 'text/html'})); a.download = "story_map.html"; a.click(); closeModal('story-modal');
