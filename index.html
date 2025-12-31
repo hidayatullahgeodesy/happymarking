@@ -87,44 +87,15 @@
 
         /* --- MOBILE RESPONSIVE STYLES --- */
         @media (max-width: 600px) {
-            /* Scrollable toolbar (Horizontal Scroll) */
-            .toolbar-container {
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                justify-content: flex-start;
-                padding: 8px 4px;
-                gap: 8px;
-                -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-            }
-            .toolbar-container::-webkit-scrollbar {
-                height: 0px; /* Hide scrollbar for cleaner look */
-                background: transparent;
-            }
-            .toolbar-group {
-                flex-shrink: 0; /* Prevent shrinking */
-            }
-            .toolbar-divider {
-                display: block; /* Keep dividers in scroll mode */
-                margin: 0 2px;
-            }
-
-            .platinum-btn { padding: 8px 12px; min-width: 44px; font-size: 16px; } /* Larger touch targets */
+            .toolbar-container { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding: 8px 4px; gap: 8px; -webkit-overflow-scrolling: touch; }
+            .toolbar-container::-webkit-scrollbar { height: 0px; background: transparent; }
+            .toolbar-group { flex-shrink: 0; }
+            .toolbar-divider { display: block; margin: 0 2px; }
+            .platinum-btn { padding: 8px 12px; min-width: 44px; font-size: 16px; }
             .platinum-select, .platinum-input { font-size: 16px; padding: 6px; }
-            
             .modal-window { width: 95% !important; max-width: 95% !important; }
             #bottom-panel { height: 45vh; }
-
-            /* Fix Layers Menu clipping on mobile: make it float above everything */
-            #layers-menu {
-                position: fixed !important;
-                top: 60px !important; /* Position below toolbar */
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                z-index: 10000 !important; /* Ensure it's on top of map */
-                border: 2px solid #fff;
-                box-shadow: 0 0 15px rgba(0,0,0,0.5);
-                min-width: 180px;
-            }
+            #layers-menu { position: fixed !important; top: 60px !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 10000 !important; border: 2px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.5); min-width: 180px; }
         }
     </style>
 </head>
@@ -165,9 +136,9 @@
             </div>
             <select id="basemapSelect" class="platinum-select" style="width: 120px;" onchange="changeBasemap(this.value)">
                 <option value="osm">1. OSM</option>
-                <option value="google-roadmap">2. Google Roadmap</option>
-                <option value="google-satellite">3. Google Satellite</option>
-                <option value="google-terrain">4. Google Terrain</option>
+                <option value="google-roadmap">2. Roadmap</option>
+                <option value="google-satellite">3. Satellite</option>
+                <option value="google-terrain">4. Terrain</option>
             </select>
             <button class="platinum-btn" onclick="zoomToData()" title="Zoom">⤢</button>
         </div>
@@ -254,13 +225,12 @@
     <div id="about-modal" class="modal-window">
         <div class="platinum-titlebar"><div class="platinum-close-btn" onclick="closeModal('about-modal')"></div><span>About</span></div>
         <div class="platinum-content" style="text-align: center;">
-            <h3>GeoEditor V11.17</h3>
-            <p>English Edition (Mobile UI Fix)</p>
+            <h3>GeoEditor V12.3</h3>
+            <p>International Edition - All Functions Restored</p>
             <button class="platinum-btn" onclick="closeModal('about-modal')">OK</button>
         </div>
     </div>
     
-    <!-- GENERIC CONFIRM MODAL -->
     <div id="confirm-modal" class="modal-window" style="width: 300px;">
         <div class="platinum-titlebar"><span>Confirmation</span></div>
         <div class="platinum-content">
@@ -272,7 +242,6 @@
         </div>
     </div>
 
-    <!-- GENERIC PROMPT MODAL -->
     <div id="prompt-modal" class="modal-window" style="width: 300px;">
         <div class="platinum-titlebar"><span>Input</span></div>
         <div class="platinum-content">
@@ -307,6 +276,11 @@
         let baseLayersConfigs = {};
         let pendingConfirmAction = null;
         let pendingPromptAction = null;
+        
+        // Custom History Manager
+        let mapHistory = [];
+        let historyCursor = -1;
+        let isTimeTraveling = false; // Flag to prevent events from firing during undo/redo
 
         // --- CORE UI FUNCTIONS ---
         function showAbout() { document.getElementById('about-modal').style.display = 'block'; }
@@ -327,7 +301,7 @@
         // --- CONTROLS ---
         function toggleDraw(s) { 
             const b = document.getElementById('btn-' + s.toLowerCase()); 
-            if(!b && s==='Polygon') { return toggleDraw('polygon'); } // Hande polygon alias
+            if(!b && s==='Polygon') { return toggleDraw('polygon'); }
             
             map.pm.disableDraw();
             map.pm.disableGlobalEditMode();
@@ -366,8 +340,61 @@
             } 
         }
 
-        function undo() { map.pm.undo(); saveToLocalStorage(); }
-        function redo() { map.pm.redo(); saveToLocalStorage(); }
+        // --- TRUE UNDO/REDO IMPLEMENTATION ---
+        function addToHistory() {
+            if(isTimeTraveling) return;
+            // Remove any forward history if we diverge
+            if(historyCursor < mapHistory.length - 1) {
+                mapHistory = mapHistory.slice(0, historyCursor + 1);
+            }
+            // Push current state
+            const geoJSON = editableLayers.toGeoJSON();
+            mapHistory.push(geoJSON);
+            historyCursor++;
+            
+            // Limit stack size (optional, e.g. 50 steps)
+            if(mapHistory.length > 50) {
+                mapHistory.shift();
+                historyCursor--;
+            }
+            saveToLocalStorage();
+        }
+
+        function undo() {
+            if(historyCursor > 0) {
+                historyCursor--;
+                restoreHistoryState(mapHistory[historyCursor]);
+                showToast("Undo successful");
+            } else {
+                showToast("Nothing to undo");
+            }
+        }
+
+        function redo() {
+            if(historyCursor < mapHistory.length - 1) {
+                historyCursor++;
+                restoreHistoryState(mapHistory[historyCursor]);
+                showToast("Redo successful");
+            } else {
+                showToast("Nothing to redo");
+            }
+        }
+
+        function restoreHistoryState(geoJSON) {
+            isTimeTraveling = true; // Prevent event loop
+            editableLayers.clearLayers();
+            L.geoJSON(geoJSON, {
+                pointToLayer: (f,l) => L.marker(l, {icon: f.properties.pointType === 'story' ? iconStory : iconNormal}),
+                onEachFeature: (f,l) => {
+                    l.feature = f;
+                    l.on('click', e => handleLayerClick(e, l));
+                    editableLayers.addLayer(l);
+                }
+            });
+            updateLayerVisibility();
+            saveToLocalStorage();
+            isTimeTraveling = false;
+        }
 
         async function searchLocation() {
             const q = document.getElementById('searchInput').value;
@@ -380,7 +407,7 @@
             } catch(e) { showToast("Search error."); }
         }
 
-        // --- CUSTOM DIALOGS ---
+        // --- DIALOGS ---
         function showConfirm(msg, action) {
             document.getElementById('confirm-msg').innerText = msg;
             pendingConfirmAction = action;
@@ -403,7 +430,7 @@
             document.getElementById('prompt-modal').style.display = 'none';
         }
 
-        // --- MAP FUNCTIONS ---
+        // --- MAP LOGIC ---
         function updateLayerVisibility() {
             const s = document.getElementById('chk-story').checked;
             const r = document.getElementById('chk-route').checked;
@@ -417,7 +444,6 @@
             renderTable(currentTab);
         }
 
-        // Restore Basemap Cycling
         document.addEventListener('keydown', (e) => {
             const isTyping = e.target.tagName === 'INPUT' || e.target.contentEditable === 'true' || e.target.tagName === 'TEXTAREA';
             if (isTyping) return;
@@ -454,6 +480,12 @@
             editableLayers = new L.FeatureGroup();
             map.addLayer(editableLayers);
             map.pm.setGlobalOptions({ layerGroup: editableLayers });
+            
+            // Reset History
+            mapHistory = [];
+            historyCursor = -1;
+            addToHistory(); // Add empty start state
+
             localStorage.removeItem('geoData');
             renderTable(currentTab);
             closeModal('props-modal');
@@ -508,7 +540,7 @@
                     poly.on('click', ev => handleLayerClick(ev, poly)); editableLayers.addLayer(poly);
                 }
             }
-            saveToLocalStorage(); 
+            addToHistory(); // Save new state
             updateLayerVisibility(); 
             zoomToData();
             showToast("GPX Imported.");
@@ -561,11 +593,31 @@
             p.name = document.getElementById('prop-name').value;
             p.description = isSourceMode ? document.getElementById('prop-desc-source').value : document.getElementById('prop-desc-editor').innerHTML;
             if(activeEditLayer instanceof L.Marker) activeEditLayer.setIcon(p.pointType === 'story' ? iconStory : iconNormal);
-            saveToLocalStorage(); activeEditLayer.bindPopup(`<b>${p.name}</b>`); closeModal('props-modal'); updateLayerVisibility();
+            addToHistory(); // Save property changes
+            activeEditLayer.bindPopup(`<b>${p.name}</b>`); closeModal('props-modal'); updateLayerVisibility();
         }
 
         function saveToLocalStorage() { if(!editableLayers) return; const d = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) }; localStorage.setItem('geoData', JSON.stringify(d)); }
-        function loadStorage() { const d = localStorage.getItem('geoData'); if(d){ const j = JSON.parse(d); L.geoJSON(j, { pointToLayer: (f,l) => L.marker(l, {icon: f.properties.pointType === 'story' ? iconStory : iconNormal}), onEachFeature: (f,l) => { l.feature = f; l.on('click', e => handleLayerClick(e, l)); editableLayers.addLayer(l); } }); updateLayerVisibility(); } }
+        function loadStorage() { 
+            const d = localStorage.getItem('geoData'); 
+            if(d){ 
+                const j = JSON.parse(d); 
+                // Load without triggering history push (initial load)
+                isTimeTraveling = true;
+                L.geoJSON(j, { 
+                    pointToLayer: (f,l) => L.marker(l, {icon: f.properties.pointType === 'story' ? iconStory : iconNormal}), 
+                    onEachFeature: (f,l) => { 
+                        l.feature = f; 
+                        l.on('click', e => handleLayerClick(e, l)); 
+                        editableLayers.addLayer(l); 
+                    } 
+                }); 
+                isTimeTraveling = false;
+                // Seed history
+                addToHistory();
+                updateLayerVisibility(); 
+            } 
+        }
 
         function changeBasemap(v) { if(currentLayer) map.removeLayer(currentLayer); currentLayer = L.tileLayer(baseLayersConfigs[v]._url, baseLayersConfigs[v].options).addTo(map); }
 
@@ -587,14 +639,12 @@
     <style>
         body{margin:0;display:flex;height:100vh;font-family:sans-serif;overflow:hidden}
         #story{flex:3;overflow-y:auto;padding:20px;border-right:1px solid #ccc;display:flex;flex-direction:column;min-width:300px;box-sizing:border-box}
-        /* Changed to absolute layout to prevent map collapse on initial load */
-        #map-container{flex:1;position:relative;display:flex;flex-direction:column;}
+        #map-container{flex:1;position:relative;display:flex;flex-direction:column}
         #map{position:absolute; top:0; bottom:0; width:100%; height:100%;}
         .nav-btns{margin-top:20px;display:flex;gap:10px}
         .btn{padding:10px;cursor:pointer;background:#6699CC;color:white;border:none;border-radius:4px;flex:1}
         .sec{padding:15px;border-bottom:1px solid #eee;cursor:pointer}
         .active{background:#eef;border-left:5px solid #32CD32}
-        /* Chart panel floats at bottom */
         #chart-panel{height:250px;display:none;background:rgba(255,255,255,0.95);z-index:9999;padding:10px;border-top:1px solid #ccc;box-sizing:border-box;position:absolute;bottom:0;width:100%;}
         img{max-width:100%}
         .tag{background:#eee;padding:3px 6px;border-radius:3px;font-size:0.85em;margin-right:5px;color:#333;display:inline-block;margin-top:2px}
@@ -733,14 +783,21 @@
             };
             currentLayer = baseLayersConfigs['osm'].addTo(map);
             map.pm.setLang('en'); map.pm.setGlobalOptions({ layerGroup: editableLayers });
+            
+            // Events that trigger history recording
             map.on('pm:create', e => {
                 const l = e.layer; editableLayers.addLayer(l);
                 if(l instanceof L.Marker) l.setIcon(iconStory);
                 l.feature = { type: 'Feature', properties: { id: "ID_" + Date.now() + "_" + Math.floor(Math.random()*1000), pointType: (l instanceof L.Marker ? 'story' : 'route'), name: '', description: '' } };
                 l.on('click', ev => handleLayerClick(ev, l));
-                saveToLocalStorage(); setTimeout(() => openProps(l), 200);
+                addToHistory(); 
+                setTimeout(() => openProps(l), 200);
             });
-            map.on('pm:remove', saveToLocalStorage); map.on('pm:edit', saveToLocalStorage); map.on('pm:dragend', saveToLocalStorage);
+            map.on('pm:remove', addToHistory); 
+            map.on('pm:edit', addToHistory); 
+            map.on('pm:dragend', addToHistory);
+            map.on('pm:cut', addToHistory);
+            
             loadStorage();
         }
 
@@ -768,6 +825,48 @@
             p.style.display = isVisible ? 'none' : 'flex';
             b.innerText = isVisible ? 'Data Table' : 'Hide Table';
             if (!isVisible) renderTable(currentTab);
+        }
+        function showElevationChart() {
+            if(!activeEditLayer || !activeEditLayer.feature.properties.elevationData) return;
+            document.getElementById('chart-modal').style.display = 'block';
+            const dt = activeEditLayer.feature.properties.elevationData;
+            const ctx = document.getElementById('elevationChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: dt.map(i => i.x), datasets: [{ label: 'Elevation (m)', data: dt.map(i => i.y), borderColor: 'red', fill: true, backgroundColor: 'rgba(255,0,0,0.1)', tension: 0.1 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    onHover: (e, els) => {
+                        if(els.length > 0) {
+                            const p = dt[els[0].index];
+                            if(!chartHoverMarker) chartHoverMarker = L.circleMarker([p.lat, p.lon], {radius: 8, color: 'blue'}).addTo(map);
+                            else chartHoverMarker.setLatLng([p.lat, p.lon]);
+                        }
+                    }
+                }
+            });
+        }
+        // Restored Missing Functions
+        function downloadKML() {
+            const layers = editableLayers.getLayers();
+            if(!layers.length) { showToast("Map is empty!"); return; }
+            let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
+            layers.forEach(l => {
+                if(!l.feature) return;
+                const p = l.feature.properties;
+                const coords = l instanceof L.Marker ? `${l.getLatLng().lng},${l.getLatLng().lat},0` : l.getLatLngs().map(ll => `${ll.lng},${ll.lat},0`).join(' ');
+                kml += `<Placemark><name>${p.name||'Point'}</name><description><![CDATA[${p.description||''}]]></description>\n`;
+                kml += l instanceof L.Marker ? `<Point><coordinates>${coords}</coordinates></Point>` : `<LineString><coordinates>${coords}</coordinates></LineString>`;
+                kml += `</Placemark>\n`;
+            });
+            kml += `</Document></kml>`;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([kml], {type: 'application/vnd.google-earth.kml+xml'})); a.download = "export.kml"; a.click();
+        }
+
+        function downloadGeoJSON() {
+            const data = { type: "FeatureCollection", features: editableLayers.getLayers().map(l => { const j = l.toGeoJSON(); if(l.feature) j.properties = l.feature.properties; return j; }) };
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "map_data.geojson"; a.click();
         }
 
         window.onload = initMap;
